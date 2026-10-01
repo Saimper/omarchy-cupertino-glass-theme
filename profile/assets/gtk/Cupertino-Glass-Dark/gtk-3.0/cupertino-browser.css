@@ -1,0 +1,130 @@
+/* Chromium/Brave native caption provider: one flat header, vector controls. */
+window.background.csd headerbar.header-bar.titlebar,
+window.background.csd headerbar.header-bar.titlebar:backdrop,
+window.background.chromium headerbar.titlebar,
+window.background.chromium headerbar.titlebar:backdrop {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background-image: none;
+  padding: 4px 10px;
+  margin: 0;
+}
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize {
+  min-width: 22px; min-height: 22px;
+  padding: 0; margin: 0; border: none; border-radius: 11px;
+  background-color: transparent; background-repeat: no-repeat;
+  background-position: center; background-size: 12px 12px;
+  box-shadow: none; color: transparent; opacity: 1;
+  outline-offset: -1px; transition: none;
+}
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close > image,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize > image,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize > image {
+  color: transparent; opacity: 0; background: none;
+  padding: 0; margin: 0; -gtk-icon-shadow: none;
+}
+
+/* close */
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:focus { background-image: url("cupertino-browser-controls/traffic-b44397294e3e.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:focus:backdrop { background-image: url("cupertino-browser-controls/traffic-b4b0d4189f31.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:focus:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:focus:backdrop:hover { background-image: url("cupertino-browser-controls/traffic-aceb0d6c17fa.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:focus:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:backdrop:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:focus:backdrop:active { background-image: url("cupertino-browser-controls/traffic-3f823a4ed818.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:focus,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:focus:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:focus:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:backdrop:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:focus:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:focus:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:disabled:focus:backdrop:active { background-image: url("cupertino-browser-controls/traffic-73ec4f3fb4ae.svg"); opacity: 1; }
+
+/* minimize */
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:focus { background-image: url("cupertino-browser-controls/traffic-948c3d67762b.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:focus:backdrop { background-image: url("cupertino-browser-controls/traffic-b4b0d4189f31.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:focus:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:focus:backdrop:hover { background-image: url("cupertino-browser-controls/traffic-43edc7c241df.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:focus:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:backdrop:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:focus:backdrop:active { background-image: url("cupertino-browser-controls/traffic-1fc1b98efba2.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:focus,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:focus:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:focus:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:backdrop:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:focus:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:focus:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:disabled:focus:backdrop:active { background-image: url("cupertino-browser-controls/traffic-73ec4f3fb4ae.svg"); opacity: 1; }
+
+/* maximize */
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:focus { background-image: url("cupertino-browser-controls/traffic-dda8e6039965.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:focus:backdrop { background-image: url("cupertino-browser-controls/traffic-b4b0d4189f31.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:focus:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:focus:backdrop:hover { background-image: url("cupertino-browser-controls/traffic-3099f329c445.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:focus:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:backdrop:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:focus:backdrop:active { background-image: url("cupertino-browser-controls/traffic-653b3f399c99.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:focus,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:focus:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:focus:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:backdrop:active,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:focus:backdrop,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:focus:backdrop:hover,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:disabled:focus:backdrop:active { background-image: url("cupertino-browser-controls/traffic-73ec4f3fb4ae.svg"); opacity: 1; }
+
+/* restore */
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled),
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):focus { background-image: url("cupertino-browser-controls/traffic-dda8e6039965.svg"); }
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):backdrop,
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):focus:backdrop { background-image: url("cupertino-browser-controls/traffic-b4b0d4189f31.svg"); }
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):hover,
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):focus:hover,
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):backdrop:hover,
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):focus:backdrop:hover { background-image: url("cupertino-browser-controls/traffic-135eb09f62b7.svg"); }
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):active,
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):focus:active,
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):backdrop:active,
+window.background.csd.maximized headerbar.header-bar.titlebar button.titlebutton.maximize:not(:disabled):focus:backdrop:active { background-image: url("cupertino-browser-controls/traffic-0cd941fd5e44.svg"); }
+
+/* Keyboard focus stays visible around the pointer target, outside the figure. */
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:focus,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:focus,
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:focus { outline: 1.5px solid alpha(@theme_selected_bg_color, 0.75); }
+
+/* User preference: keep active colours on unfocused windows. */
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.close:backdrop:not(:disabled) { background-image: url("cupertino-browser-controls/traffic-b44397294e3e.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.minimize:backdrop:not(:disabled) { background-image: url("cupertino-browser-controls/traffic-948c3d67762b.svg"); }
+window.background.csd headerbar.header-bar.titlebar button.titlebutton.maximize:backdrop:not(:disabled) { background-image: url("cupertino-browser-controls/traffic-dda8e6039965.svg"); }

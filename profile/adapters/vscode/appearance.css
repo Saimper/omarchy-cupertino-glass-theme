@@ -1,0 +1,53 @@
+/* Restyle VS Code's own working controls; never add a second header. */
+.monaco-workbench .part.titlebar .window-controls-container:not(.wco-enabled) {
+  position: fixed !important;
+  left: 10px !important;
+  right: auto !important;
+  top: 0 !important;
+  width: 66px !important;
+  height: var(--title-bar-height, 35px) !important;
+  align-items: center !important;
+  z-index: 3000;
+}
+.monaco-workbench .part.titlebar .titlebar-left { padding-left: 82px !important; }
+.monaco-workbench .part.titlebar .window-controls-container > .window-icon {
+  position: relative;
+  width: 22px !important;
+  height: 26px !important;
+  flex: 0 0 22px;
+  padding: 0;
+  margin: 0;
+  background: transparent !important;
+  opacity: 1 !important;
+  border: none;
+}
+.monaco-workbench .part.titlebar .window-controls-container > .window-icon::before {
+  content: '' !important;
+  display: block;
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 50%;
+  background: linear-gradient(var(--control-top), var(--control-color) 55%, var(--control-bottom));
+  box-shadow: inset 0 0 0 .5px #0003;
+  opacity: 1 !important;
+}
+.monaco-workbench .window-controls-container .window-close {
+  order: 0;
+  --control-top: #ff6b63;
+  --control-color: #ff5f57;
+  --control-bottom: #f55b53;
+}
+.monaco-workbench .window-controls-container .window-minimize {
+  order: 1;
+  --control-top: #ffc540;
+  --control-color: #febc2e;
+  --control-bottom: #f3b329;
+}
+.monaco-workbench .window-controls-container .window-max-restore {
+  order: 2;
+  --control-top: #3bcf50;
+  --control-color: #28c840;
+  --control-bottom: #24be3b;
+}
+.monaco-workbench .window-controls-container .window-icon:active::before { filter: brightness(.88); }
+.monaco-workbench .window-controls-container .window-icon:focus-visible { outline: 1px solid #8aadf4; outline-offset: -1px; border-radius: 5px; }

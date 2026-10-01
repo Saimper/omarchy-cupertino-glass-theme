@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "cupertino.application",
+  "name": "Cupertino Application Menu",
+  "version": "0.3.0",
+  "author": "Saimper",
+  "license": "MIT",
+  "description": "Contextual application shortcuts, native window actions and desktop menu.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Application.qml"
+  },
+  "barWidget": {
+    "displayName": "Aplicaci\u00f3n activa",
+    "category": "Compositor",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  }
+}

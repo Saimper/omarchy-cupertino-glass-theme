@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "cupertino.profiles",
+  "name": "Perfiles de escritorio",
+  "version": "0.2.0",
+  "author": "Saimper",
+  "license": "MIT",
+  "description": "Switch between independent Cupertino Light, Cupertino Dark and the original Omarchy profile.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Profiles.qml"
+  },
+  "barWidget": {
+    "displayName": "Perfiles",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

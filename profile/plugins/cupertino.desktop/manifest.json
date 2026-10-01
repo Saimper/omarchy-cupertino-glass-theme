@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "cupertino.desktop",
+  "name": "Cupertino Glass",
+  "version": "0.2.0",
+  "author": "Saimper",
+  "license": "MIT",
+  "description": "A reversible macOS-inspired desktop profile: native dock, proportional typography and control center.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "ControlCenter.qml"
+  },
+  "barWidget": {
+    "displayName": "Centro de control",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

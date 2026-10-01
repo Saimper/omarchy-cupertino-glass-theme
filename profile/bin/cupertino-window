@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""Window actions and reversible profile layout, using Hyprland's native API."""
+import argparse, fcntl, json, os, pathlib, re, subprocess, tempfile, time
+
+ROOT = pathlib.Path.home()/'.local/state/cupertino-glass'
+SIGNATURE = re.sub(r'[^a-zA-Z0-9_-]', '_', os.environ.get('HYPRLAND_INSTANCE_SIGNATURE', 'session'))
+STATE = ROOT/'windows'/SIGNATURE
+MINIMIZED = STATE/'minimized.json'
+
+def run(*args):
+    result = subprocess.run(args, check=True, text=True, capture_output=True, timeout=10)
+    if result.stdout.startswith(('error:', 'Error:')):
+        raise RuntimeError(result.stdout.strip())
+    return result.stdout
+
+def query(kind): return json.loads(run('hyprctl', '-j', kind))
+def lua_string(value):
+    # Lua double-quoted strings: JSON escapes are compatible for these validated
+    # identifiers; Unicode remains literal, and control characters use decimal.
+    return '"'+''.join(('\\%03d'%ord(c)) if ord(c)<32 else ('\\'+c if c in '\\"' else c) for c in str(value))+'"'
+def lua_value(value):
+    if isinstance(value, bool): return 'true' if value else 'false'
+    if isinstance(value, (int,float)): return str(value)
+    return lua_string(value)
+def dispatch(dispatcher, address, **values):
+    fields = ','.join(k+'='+lua_value(v) for k,v in dict(window='address:'+address,**values).items())
+    run('hyprctl', 'eval', 'hl.dispatch(hl.dsp.'+dispatcher+'({'+fields+'}))')
+def save(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp = tempfile.mkstemp(dir=path.parent)
+    try:
+        with os.fdopen(fd,'w') as f: json.dump(data,f); f.flush(); os.fsync(f.fileno())
+        os.replace(temp,path)
+    finally:
+        if os.path.exists(temp): os.unlink(temp)
+def load_minimized(): return json.loads(MINIMIZED.read_text()) if MINIMIZED.exists() else {}
+def same_window(saved, live):
+    return saved.get('stableId') == live.get('stableId') and saved.get('pid') == live.get('pid') and saved.get('address') == live.get('address')
+def focus(address): dispatch('focus',address)
+def fullscreen(address, record):
+    dispatch('window.fullscreen_state',address,internal=record.get('fullscreen',0),client=record.get('fullscreenClient',0),action='set')
+def wait_unmaximized(address):
+    # Client configure/ack commits happen after the dispatcher returns. Moving to
+    # a hidden workspace before that transaction settles can keep the old output.
+    stable=0
+    for _ in range(40):
+        window=next((w for w in query('clients') if w['address']==address),None)
+        if not window: return False
+        stable=stable+1 if not window['fullscreen'] and not window['fullscreenClient'] else 0
+        if stable>=3:return True
+        time.sleep(.025)
+    return False
+
+def minimize(window, records):
+    address=window['address']
+    if window['workspace']['name']=='special:cupertino-minimized': return
+    records[address]=window
+    save(MINIMIZED,records) # Recovery information is durable before hiding anything.
+    if window['fullscreen']:
+        fullscreen(address,{})
+        if not wait_unmaximized(address):
+            raise RuntimeError('Window did not finish restoring before minimization')
+        normal=next(w for w in query('clients') if w['address']==address)
+        records[address]['restore_at']=normal['at']
+        records[address]['restore_size']=normal['size']
+        save(MINIMIZED,records)
+    if window['pinned']: dispatch('window.pin',address,action='unset')
+    dispatch('window.move',address,workspace='special:cupertino-minimized',follow=False)
+
+def restore(window, records, activate=True):
+    address=window['address']; record=records.get(address)
+    if record and same_window(record,window):
+        if window['workspace']['name']=='special:cupertino-minimized':
+            dispatch('window.move',address,workspace=record['workspace']['name'],follow=False)
+            if record['floating']:
+                size=record.get('restore_size',record['size']); position=record.get('restore_at',record['at'])
+                dispatch('window.resize',address,x=size[0],y=size[1])
+                dispatch('window.move',address,x=position[0],y=position[1])
+            if record['pinned']: dispatch('window.pin',address,action='set')
+            if record['fullscreen']: fullscreen(address,record)
+        records.pop(address,None); save(MINIMIZED,records)
+    if activate: focus(address)
+
+def revert_profile():
+    clients=query('clients'); records=load_minimized(); errors=[]
+    def still_live(record):
+        return any(same_window(record,w) for w in query('clients'))
+    for window in clients:
+        if window['address'] in records:
+            try: restore(window,records,False)
+            except (RuntimeError,subprocess.SubprocessError) as error:
+                if still_live(window): errors.append(str(error))
+                else: records.pop(window['address'],None); save(MINIMIZED,records)
+    # A window may close between requests. Never let that prevent restoring others.
+    clients={w['address']:w for w in query('clients')}
+    for path in STATE.glob('*.json'):
+        if path.name=='minimized.json': continue
+        record=json.loads(path.read_text()); window=clients.get(record['address'])
+        if window and same_window(record,window):
+            try:
+                if window['fullscreen']:
+                    fullscreen(window['address'],{})
+                    wait_unmaximized(window['address'])
+                dispatch('window.float',window['address'],action='set' if record['floating'] else 'unset')
+                if record['floating']:
+                    dispatch('window.resize',window['address'],x=record['size'][0],y=record['size'][1])
+                    dispatch('window.move',window['address'],x=record['at'][0],y=record['at'][1])
+                if record['fullscreen']: fullscreen(window['address'],record)
+            except (RuntimeError,subprocess.SubprocessError) as error:
+                if still_live(record): errors.append(str(error)); continue
+        path.unlink()
+    if errors: raise RuntimeError('Some windows could not be restored: '+'; '.join(errors))
+    MINIMIZED.unlink(missing_ok=True)
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('action',choices=['maximize','minimize','restore','close','revert-profile','restore-all','list'])
+    parser.add_argument('address',nargs='?')
+    args=parser.parse_args()
+    STATE.mkdir(parents=True,exist_ok=True)
+    with (STATE/'actions.lock').open('w') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        if args.action=='revert-profile': revert_profile(); return
+        records=load_minimized()
+        if args.action=='list': print(json.dumps(records)); return
+        if args.action=='restore-all':
+            for w in query('clients'):
+                if w['address'] in records: restore(w,records,False)
+            return
+        if args.address:
+            if not re.fullmatch(r'(?:0x)?[a-fA-F0-9]+',args.address): parser.error('invalid window address')
+            address='0x'+args.address.removeprefix('0x')
+            window=next((w for w in query('clients') if w['address']==address),None)
+        else: window=query('activewindow')
+        if not window: return
+        if args.action=='minimize':
+            theme=pathlib.Path.home()/'.local/state/omarchy/current/theme.name'
+            if not theme.exists() or theme.read_text().strip() not in ('cupertino-dark','cupertino-light'): return
+            minimize(window,records)
+        elif args.action=='restore': restore(window,records)
+        elif args.action=='maximize': dispatch('window.fullscreen',window['address'],mode='maximized')
+        elif args.action=='close': dispatch('window.close',window['address'])
+
+if __name__=='__main__': main()

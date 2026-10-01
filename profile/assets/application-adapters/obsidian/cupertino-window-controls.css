@@ -1,0 +1,134 @@
+/* Cupertino Glass — styles Obsidian's EXISTING Electron window buttons.
+   No additional title bar, overlay, script or replacement click handlers.
+   Enabled only by the Cupertino profile's managed snippet entry. */
+/* Documented Obsidian semantic variables; dark mode only. Status/callout
+   colors and syntax token colors remain defined by the application's theme.
+   https://docs.obsidian.md/Reference/CSS%20variables/Foundations/Colors */
+body.theme-dark {
+  --background-primary: #24273a;
+  --background-primary-alt: #24273a;
+  --background-secondary: #24273a;
+  --background-secondary-alt: #24273a;
+  --titlebar-background: #24273a;
+  --titlebar-background-focused: #24273a;
+  --tab-container-background: #24273a;
+  --tab-background-active: #24273a;
+  --ribbon-background: #24273a;
+  --ribbon-background-collapsed: #24273a;
+  --text-normal: #cad3f5;
+  --text-muted: #a5adcb;
+  --color-accent: #8aadf4;
+  --color-accent-1: color-mix(in srgb, #8aadf4 90%, white);
+  --color-accent-2: color-mix(in srgb, #8aadf4 82%, white);
+  --interactive-accent: var(--color-accent);
+  --interactive-accent-hover: var(--color-accent-1);
+  --text-accent: var(--color-accent);
+  --text-accent-hover: var(--color-accent-1);
+  --text-on-accent: #24273a;
+  --text-on-accent-inverted: #24273a;
+}
+
+body.mod-linux.is-frameless:not(.is-fullscreen) {
+  --frame-right-space: 0px;
+  --frame-left-space: max(0px, calc(172px - var(--ribbon-width, 44px)));
+}
+body.mod-linux.is-frameless.is-popout-window:not(.is-fullscreen) {
+  --frame-left-space: 172px;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right {
+  left: 10px;
+  right: auto;
+  height: var(--header-height);
+  width: 66px;
+  align-items: center;
+  justify-content: flex-start;
+  background: transparent !important;
+  padding: 0;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-left {
+  left: 112px;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .titlebar-button {
+  position: relative;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent !important;
+  opacity: 1;
+  -webkit-app-region: no-drag;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .titlebar-button::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  /* Vector CSS geometry remains sharp at fractional desktop scaling. */
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--cupertino-control-color) 93%, white),
+    var(--cupertino-control-color) 55%,
+    color-mix(in srgb, var(--cupertino-control-color) 96%, black));
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 17%),
+    inset 0 0.5px 0 rgb(255 255 255 / 18%);
+  pointer-events: none;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .titlebar-button::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  background: var(--cupertino-control-glyph) center / 8px 8px no-repeat;
+  opacity: 0;
+  pointer-events: none;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .titlebar-button > svg {
+  opacity: 0;
+  pointer-events: none;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .mod-close {
+  order: 0;
+  --cupertino-control-color: #ff5f57;
+  --cupertino-control-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='m2 2 4 4m0-4L2 6' stroke='%23702a24' stroke-width='.85'/%3E%3C/svg%3E");
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .mod-minimize {
+  order: 1;
+  --cupertino-control-color: #febc2e;
+  --cupertino-control-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M1.5 4h5' stroke='%23855b17' stroke-width='.85'/%3E%3C/svg%3E");
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .mod-maximize {
+  order: 2;
+  --cupertino-control-color: #28c840;
+  --cupertino-control-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M1.5 1.5h3l-3 3zm5 5h-3l3-3z' fill='%23145f27'/%3E%3C/svg%3E");
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right:hover > .titlebar-button::after,
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .titlebar-button:focus-visible::after {
+  opacity: 1;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .titlebar-button:active::before {
+  filter: brightness(0.88);
+}
+
+/* Reserve real space for the existing sidebar toggle: it previously sat
+   underneath the red window button at x=0. */
+body.mod-linux.is-frameless:not(.is-fullscreen) .workspace .sidebar-toggle-button.mod-left {
+  position: absolute;
+  left: 80px;
+  top: 0;
+  width: 28px;
+  height: var(--header-height);
+  z-index: var(--layer-cover);
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .titlebar-button:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+body.mod-linux.is-frameless .titlebar-button-container.mod-right > .titlebar-button:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: -2px;
+}

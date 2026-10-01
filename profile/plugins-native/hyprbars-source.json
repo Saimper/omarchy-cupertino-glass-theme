@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/hyprwm/hyprland-plugins",
+  "commit": "7644cecdb947060682891a0db2a0cdc5c0b9e704",
+  "hyprland": "efb50993780079460b0cbed1363e2166a2de1d9f",
+  "archive_sha256": "b836086c78f93d9749989622b35b74ad214f8581bdef482232e6d03664827edc",
+  "local_modifications": {
+    "files": [
+      "hyprbars/barDeco.cpp",
+      "hyprbars/barDeco.hpp"
+    ],
+    "purpose": "Stable click/drag/double-click discrimination and topmost-window input ownership",
+    "patch": "hyprbars-cupertino.patch"
+  }
+}

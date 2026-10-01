@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.so
+*.o
+profile/plugins-native/build/
+profile/apps/
+.local/
+node_modules/

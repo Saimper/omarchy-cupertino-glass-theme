@@ -1,0 +1,143 @@
+--- a/hyprbars/barDeco.cpp
++++ b/hyprbars/barDeco.cpp
+@@ -27,6 +27,7 @@
+ #include "BarPassElement.hpp"
+ 
+ #include <climits>
++#include <linux/input-event-codes.h>
+ 
+ using namespace Render::GL;
+ 
+@@ -100,10 +101,7 @@
+ 
+     const auto              WINDOWATCURSOR = hitTester.windowAt(MOUSE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+ 
+-    auto                    focusState = Desktop::focusState();
+-    auto                    window     = focusState->window();
+-
+-    if (WINDOWATCURSOR != m_pWindow && m_pWindow != window)
++    if (WINDOWATCURSOR != m_pWindow)
+         return false;
+ 
+     PHLLS    foundSurface = nullptr;
+@@ -123,13 +121,18 @@
+ }
+ 
+ void CHyprBar::onMouseButton(Event::SCallbackInfo& info, IPointer::SButtonEvent e) {
++    if (e.button != BTN_LEFT)
++        return;
++
++    if (e.state != WL_POINTER_BUTTON_STATE_PRESSED) {
++        // Finish our own grab even if the cursor crossed another surface.
++        if (m_bCancelledDown || m_bDraggingThis)
++            handleUpEvent(info);
++        return;
++    }
++
+     if (!inputIsValid())
+         return;
+-
+-    if (e.state != WL_POINTER_BUTTON_STATE_PRESSED) {
+-        handleUpEvent(info);
+-        return;
+-    }
+ 
+     handleDownEvent(info, std::nullopt);
+ }
+@@ -157,6 +160,12 @@
+     if (!m_bDragPending || m_bTouchEv || !validMapped(m_pWindow) || m_touchId != 0)
+         return;
+ 
++    // A small amount of pointer jitter is still a click, especially on touchpads.
++    if (coords.distance(m_pressPosition) < 4.0)
++        return;
++
++    m_hasCompletedClick = false;
++    m_titleClickPending = false;
+     m_bDragPending = false;
+     handleMovement();
+ }
+@@ -221,6 +230,8 @@
+         m_bDraggingThis = false;
+         m_bDragPending  = false;
+         m_bTouchEv      = false;
++        m_titleClickPending = false;
++        m_hasCompletedClick = false;
+         return;
+     }
+ 
+@@ -233,27 +244,41 @@
+     info.cancelled   = true;
+     m_bCancelledDown = true;
+ 
+-    if (doButtonPress(BARPADDING, BARBUTTONPADDING, HEIGHT, COORDS, BUTTONSRIGHT))
+-        return;
+-
+-    if (!ON_DOUBLE_CLICK.empty() &&
+-        std::chrono::duration_cast<std::chrono::milliseconds>(Time::steadyNow() - m_lastMouseDown).count() < 400 /* Arbitrary delay I found suitable */) {
++    if (doButtonPress(BARPADDING, BARBUTTONPADDING, HEIGHT, COORDS, BUTTONSRIGHT)) {
++        m_hasCompletedClick = false;
++        m_titleClickPending = false;
++        m_bDragPending = false;
++        return;
++    }
++
++    const auto POSITION = COORDS + assignedBoxGlobal().pos();
++    if (!ON_DOUBLE_CLICK.empty() && m_hasCompletedClick && !m_bTouchEv &&
++        std::chrono::duration_cast<std::chrono::milliseconds>(Time::steadyNow() - m_lastCompletedClick).count() < 400 &&
++        POSITION.distance(m_lastClickPosition) <= 5.0) {
+         Config::Supplementary::executor()->spawn(ON_DOUBLE_CLICK);
++        m_hasCompletedClick = false;
++        m_titleClickPending = false;
+         m_bDragPending = false;
+     } else {
+-        m_lastMouseDown = Time::steadyNow();
++        m_pressPosition = POSITION;
++        m_hasCompletedClick = false;
++        m_titleClickPending = !m_bTouchEv;
+         m_bDragPending  = true;
+     }
+ }
+ 
+ void CHyprBar::handleUpEvent(Event::SCallbackInfo& info) {
+-    if (m_pWindow.lock() != Desktop::focusState()->window())
+-        return;
+-
+     if (m_bCancelledDown)
+         info.cancelled = true;
+ 
+     m_bCancelledDown = false;
++
++    if (m_titleClickPending && !m_bDraggingThis && m_pWindow.lock() == Desktop::focusState()->window()) {
++        m_lastCompletedClick = Time::steadyNow();
++        m_lastClickPosition = m_pressPosition;
++        m_hasCompletedClick = true;
++    }
++    m_titleClickPending = false;
+ 
+     if (m_bDraggingThis) {
+         g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
+@@ -270,6 +295,8 @@
+ }
+ 
+ void CHyprBar::handleMovement() {
++    m_hasCompletedClick = false;
++    m_titleClickPending = false;
+     g_pKeybindManager->changeMouseBindMode(MBIND_MOVE);
+     m_bDraggingThis = true;
+     Log::logger->log(Log::DEBUG, "[hyprbars] Dragging initiated on {:x}", (uintptr_t)m_pWindow.lock().get());
+--- a/hyprbars/barDeco.hpp
++++ b/hyprbars/barDeco.hpp
+@@ -71,7 +71,11 @@
+     std::optional<CHyprColor>  m_bForcedBarColor;
+     std::optional<CHyprColor>  m_bForcedTitleColor;
+ 
+-    Time::steady_tp            m_lastMouseDown = Time::steadyNow();
++    Time::steady_tp            m_lastCompletedClick{};
++    Vector2D                   m_lastClickPosition;
++    Vector2D                   m_pressPosition;
++    bool                       m_hasCompletedClick = false;
++    bool                       m_titleClickPending = false;
+ 
+     PHLANIMVAR<CHyprColor>     m_cRealBarColor;
+ 

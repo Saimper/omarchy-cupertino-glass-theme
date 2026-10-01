@@ -1,0 +1,111 @@
+/* Cupertino dark canvas: Catppuccin Macchiato Base, the uniform dark profile canvas.
+   Original palette: https://github.com/catppuccin/palette
+   One opaque canvas joins the header, view and sidebar. Floating shell glass
+   and native traffic-light artwork remain independent of this stylesheet. */
+@define-color cupertino_canvas #24273a;
+@define-color cupertino_text #cad3f5;
+@define-color cupertino_accent #8aadf4;
+@define-color theme_bg_color #24273a;
+@define-color theme_base_color #24273a;
+@define-color theme_fg_color #cad3f5;
+@define-color theme_text_color #cad3f5;
+@define-color theme_unfocused_bg_color #24273a;
+@define-color theme_unfocused_base_color #24273a;
+@define-color theme_unfocused_fg_color #b8c0e0;
+@define-color theme_unfocused_text_color #b8c0e0;
+@define-color bg_color #24273a;
+@define-color base_color #24273a;
+@define-color fg_color #cad3f5;
+@define-color text_color #cad3f5;
+@define-color content_view_bg #24273a;
+@define-color text_view_bg #24273a;
+@define-color window_bg_color #24273a;
+@define-color window_fg_color #cad3f5;
+@define-color view_bg_color #24273a;
+@define-color view_fg_color #cad3f5;
+@define-color headerbar_bg_color #24273a;
+@define-color headerbar_backdrop_color #24273a;
+@define-color headerbar_fg_color #cad3f5;
+@define-color sidebar_bg_color #24273a;
+@define-color sidebar_backdrop_color #24273a;
+@define-color sidebar_fg_color #cad3f5;
+@define-color secondary_sidebar_bg_color #24273a;
+@define-color secondary_sidebar_backdrop_color #24273a;
+@define-color secondary_sidebar_fg_color #cad3f5;
+@define-color card_bg_color #494d64;
+@define-color card_fg_color #cad3f5;
+@define-color popover_bg_color #24273a;
+@define-color popover_fg_color #cad3f5;
+@define-color dialog_bg_color #24273a;
+@define-color dialog_fg_color #cad3f5;
+@define-color dark_fill_bg_color #24273a;
+@define-color insensitive_bg_color #24273a;
+@define-color insensitive_base_color #24273a;
+@define-color insensitive_fg_color #939ab7;
+@define-color theme_selected_bg_color #8aadf4;
+@define-color theme_selected_fg_color #24273a;
+@define-color selected_bg_color #8aadf4;
+@define-color selected_fg_color #24273a;
+@define-color accent_bg_color #8aadf4;
+@define-color accent_color #8aadf4;
+@define-color accent_fg_color #24273a;
+@define-color warning_color #eed49f;
+@define-color error_color #ed8796;
+@define-color success_color #a6da95;
+@define-color link_color #8aadf4;
+@define-color wm_bg #24273a;
+@define-color wm_bg_unfocused #24273a;
+@define-color wm_title #cad3f5;
+@define-color wm_unfocused_title #b8c0e0;
+@define-color titlebar_gradient_a #24273a;
+@define-color titlebar_gradient_b #24273a;
+
+window.background,
+window.background:backdrop,
+window.background.csd,
+window.background.csd:backdrop,
+window.background.solid-csd,
+window.background.solid-csd:backdrop,
+window.background > contents,
+window.background > box,
+window.background > overlay,
+window.background .background,
+window.background .view:not(:selected),
+window.background textview,
+window.background textview > text,
+window.background scrolledwindow > viewport,
+window.background columnview,
+window.background listview,
+window.background gridview,
+window.background placessidebar,
+window.background .sidebar,
+window.background .sidebar-pane,
+window.background .content-pane,
+window.background .navigation-sidebar,
+window.background .navigation-sidebar > list {
+  background-color: @cupertino_canvas;
+  background-image: none;
+  color: @cupertino_text;
+}
+
+window.background headerbar,
+window.background headerbar:backdrop,
+window.background headerbar.titlebar,
+window.background headerbar.default-decoration,
+window.background .titlebar:not(headerbar),
+window.background .sidebar-pane headerbar,
+window.background .content-pane headerbar,
+window.background toolbar,
+window.background actionbar > revealer > box {
+  background-color: @cupertino_canvas;
+  background-image: none;
+  color: @cupertino_text;
+  box-shadow: none;
+  border-bottom-color: @cupertino_canvas;
+}
+
+window.background .sidebar separator,
+window.background .sidebar-pane > separator {
+  background-color: transparent;
+  color: transparent;
+}

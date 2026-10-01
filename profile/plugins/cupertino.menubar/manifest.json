@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "cupertino.menubar",
+  "name": "Cupertino Menu Bar",
+  "version": "0.3.0",
+  "author": "Saimper",
+  "license": "MIT",
+  "description": "A quiet menu bar with live native controls and a collapsible accessory area.",
+  "kinds": ["bar"],
+  "entryPoints": {"bar": "Bar.qml"}
+}

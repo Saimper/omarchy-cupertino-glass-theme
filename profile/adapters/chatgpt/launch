@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+"""Select the local resource adapter only for its tested package and profile."""
+import hashlib, json, os, pathlib, struct
+
+user_dir = pathlib.Path.home()
+original = pathlib.Path('/usr/lib/chatgpt/ChatGPT')
+adapter = user_dir/'.local/share/cupertino-glass/apps/chatgpt/26.928.21956-stable-controls'
+try:
+    theme = (user_dir/'.local/state/omarchy/current/theme.name').read_text().strip()
+    installed = json.loads(pathlib.Path('/usr/lib/chatgpt/resources/linux-package-metadata.json').read_text())
+    metadata = json.loads((adapter/'cupertino-adapter.json').read_text())
+    archive = pathlib.Path('/usr/lib/chatgpt/resources/app.asar').stat()
+    source_matches = metadata.get('sourceArchiveStat') == {'size':archive.st_size,'mtimeNs':archive.st_mtime_ns}
+    runtime = original.stat()
+    runtime_matches = metadata.get('sourceExecutableStat') == {'size':runtime.st_size,'mtimeNs':runtime.st_mtime_ns}
+    checksum_matches = False
+    if source_matches and runtime_matches:
+        with pathlib.Path('/usr/lib/chatgpt/resources/app.asar').open('rb') as stream:
+            _,header_size,_,length=struct.unpack('<4I',stream.read(16))
+            if 0 < length <= 8*1024*1024:
+                header=json.loads(stream.read(length))
+                entry=header['files']['.vite']['files']['build']['files']['main-BbeJ4AAR.js']
+                if 0 < entry['size'] <= 8*1024*1024:
+                    stream.seek(8+header_size+int(entry['offset']))
+                    checksum_matches=hashlib.sha256(stream.read(entry['size'])).hexdigest()==metadata['originalMainSha256']
+    if theme in ('cupertino-dark','cupertino-light') and checksum_matches and installed.get('version') == metadata['version'] and os.access(adapter/'ChatGPT',os.X_OK):
+        original = adapter/'ChatGPT'
+except (OSError, ValueError, KeyError, struct.error):
+    pass
+os.execv(original, [str(original), *os.sys.argv[1:]])

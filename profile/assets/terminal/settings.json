@@ -1,0 +1,157 @@
+{
+  "foot": {
+    "common": {
+      "main": {
+        "font": "DejaVu Sans Mono:size=9.75,JetBrainsMono Nerd Font:size=9.75",
+        "pad": "8x6",
+        "initial-window-size-chars": "92x28",
+        "initial-window-mode": "windowed"
+      },
+      "cursor": {
+        "style": "block",
+        "blink": "yes"
+      }
+    },
+    "dark": {
+      "colors-dark": {
+        "background": "24273a",
+        "foreground": "cad3f5",
+        "selection-background": "5b6078",
+        "selection-foreground": "cad3f5",
+        "regular0": "494d64",
+        "regular1": "ed8796",
+        "regular2": "a6da95",
+        "regular3": "eed49f",
+        "regular4": "8aadf4",
+        "regular5": "f5bde6",
+        "regular6": "8bd5ca",
+        "regular7": "b8c0e0",
+        "bright0": "5b6078",
+        "bright1": "ed8796",
+        "bright2": "a6da95",
+        "bright3": "eed49f",
+        "bright4": "8aadf4",
+        "bright5": "f5bde6",
+        "bright6": "8bd5ca",
+        "bright7": "a5adcb",
+        "cursor": "24273a f4dbd6"
+      }
+    },
+    "light": {
+      "colors-dark": {
+        "background": "ffffff",
+        "foreground": "242424",
+        "selection-background": "b4d5fe",
+        "selection-foreground": "171717",
+        "regular0": "242424",
+        "regular1": "b42318",
+        "regular2": "24713b",
+        "regular3": "805f00",
+        "regular4": "1757a6",
+        "regular5": "873a9b",
+        "regular6": "007581",
+        "regular7": "6c6c6c",
+        "bright0": "707070",
+        "bright1": "be3328",
+        "bright2": "317945",
+        "bright3": "866700",
+        "bright4": "2863b5",
+        "bright5": "9346a7",
+        "bright6": "16818b",
+        "bright7": "242424",
+        "cursor": "ffffff 242424"
+      }
+    }
+  },
+  "alacritty": {
+    "common": {
+      "font": {
+        "normal": "{ family = \"DejaVu Sans Mono\", style = \"Book\" }",
+        "bold": "{ family = \"DejaVu Sans Mono\", style = \"Bold\" }",
+        "italic": "{ family = \"DejaVu Sans Mono\", style = \"Oblique\" }",
+        "bold_italic": "{ family = \"DejaVu Sans Mono\", style = \"Bold Oblique\" }",
+        "size": "9.75"
+      },
+      "window": {
+        "padding.x": "8",
+        "padding.y": "6",
+        "dimensions.columns": "92",
+        "dimensions.lines": "28",
+        "opacity": "1.0",
+        "startup_mode": "\"Windowed\""
+      },
+      "cursor": {
+        "style": "{ shape = \"Block\", blinking = \"On\" }",
+        "blink_interval": "700"
+      }
+    },
+    "dark": {
+      "colors.primary": {
+        "background": "\"#24273a\"",
+        "foreground": "\"#cad3f5\""
+      },
+      "colors.cursor": {
+        "text": "\"#24273a\"",
+        "cursor": "\"#f4dbd6\""
+      },
+      "colors.selection": {
+        "text": "\"#cad3f5\"",
+        "background": "\"#5b6078\""
+      },
+      "colors.normal": {
+        "black": "\"#494d64\"",
+        "red": "\"#ed8796\"",
+        "green": "\"#a6da95\"",
+        "yellow": "\"#eed49f\"",
+        "blue": "\"#8aadf4\"",
+        "magenta": "\"#f5bde6\"",
+        "cyan": "\"#8bd5ca\"",
+        "white": "\"#b8c0e0\""
+      },
+      "colors.bright": {
+        "black": "\"#5b6078\"",
+        "red": "\"#ed8796\"",
+        "green": "\"#a6da95\"",
+        "yellow": "\"#eed49f\"",
+        "blue": "\"#8aadf4\"",
+        "magenta": "\"#f5bde6\"",
+        "cyan": "\"#8bd5ca\"",
+        "white": "\"#a5adcb\""
+      }
+    },
+    "light": {
+      "colors.primary": {
+        "background": "\"#ffffff\"",
+        "foreground": "\"#242424\""
+      },
+      "colors.cursor": {
+        "text": "\"#ffffff\"",
+        "cursor": "\"#242424\""
+      },
+      "colors.selection": {
+        "text": "\"#171717\"",
+        "background": "\"#b4d5fe\""
+      },
+      "colors.normal": {
+        "black": "\"#242424\"",
+        "red": "\"#b42318\"",
+        "green": "\"#24713b\"",
+        "yellow": "\"#805f00\"",
+        "blue": "\"#1757a6\"",
+        "magenta": "\"#873a9b\"",
+        "cyan": "\"#007581\"",
+        "white": "\"#6c6c6c\""
+      },
+      "colors.bright": {
+        "black": "\"#707070\"",
+        "red": "\"#be3328\"",
+        "green": "\"#317945\"",
+        "yellow": "\"#866700\"",
+        "blue": "\"#2863b5\"",
+        "magenta": "\"#9346a7\"",
+        "cyan": "\"#16818b\"",
+        "white": "\"#242424\""
+      }
+    }
+  }
+}

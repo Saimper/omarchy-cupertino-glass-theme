@@ -1,0 +1,46 @@
+    :root[data-cupertino-app="mac"][data-cupertino-color="dark"] {
+      --app-color-background-surface:#24273a!important;
+      --app-color-background-surface-under:#24273a!important;
+      --app-color-background-editor-opaque:#24273a!important;
+      --app-color-background-recovery:#24273a!important;
+      --app-color-background-shell:#24273a!important;
+      --app-color-background-elevated-primary:#363a4f!important;
+      --app-color-background-elevated-primary-opaque:#363a4f!important;
+      --app-color-background-card:#363a4f!important;
+      --app-color-text-foreground:#cad3f5!important;
+      --app-color-text-foreground-secondary:#b8c0e0!important;
+      --app-color-text-foreground-tertiary:#a5adcb!important;
+      --app-color-text-button-primary:#24273a!important;
+      --color-text-inverse:#24273a!important;
+      --color-text-primary-solid:#24273a!important;
+      --color-codex-description:#a5adcb!important;
+      --app-color-border:#494d64!important;
+      --color-border:#494d64!important;
+      --color-text:#cad3f5!important;
+      --color-text-emphasis:#cad3f5!important;
+      --codex-titlebar-tint:#24273a!important;
+    }
+    :root[data-cupertino-app="mac"] [data-app-shell-frame] {
+      --spacing-token-safe-header-left:82px!important;
+      --spacing-token-safe-header-right:8px!important;
+    }
+    [data-cupertino-app-header="mac"] { padding-left:82px!important; }
+    [data-cupertino-app-header="standard"] { padding-right:126px!important; }
+    #cupertino-app-controls { position:fixed;left:10px;top:0;width:66px;height:32px;display:flex;
+      align-items:center;gap:0;-webkit-app-region:no-drag;user-select:none;pointer-events:auto;z-index:10000; }
+    #cupertino-app-controls button { all:unset;box-sizing:border-box;width:22px;height:26px;
+      display:grid;place-items:center;-webkit-app-region:no-drag;cursor:default; }
+    #cupertino-app-controls button svg { display:block;width:12px;height:12px;overflow:visible;pointer-events:none; }
+    #cupertino-app-controls .control-glyph { opacity:0;stroke:var(--control-glyph);stroke-width:.85;
+      stroke-linecap:round;stroke-linejoin:round;fill:none; }
+    #cupertino-app-controls button[data-action="maximize"] .control-glyph { fill:var(--control-glyph);stroke:none; }
+    #cupertino-app-controls:hover .control-glyph,
+    #cupertino-app-controls button:focus-visible .control-glyph {opacity:1;}
+    #cupertino-app-controls button:focus-visible {outline:2px solid #8aadf4;outline-offset:-1px;border-radius:5px;}
+    #cupertino-app-controls button:active svg {filter:brightness(.86);}
+    #cupertino-app-controls[data-active="false"] {left:auto;right:0;width:120px;flex-direction:row-reverse;}
+    #cupertino-app-controls[data-active="false"] button {width:40px;height:100%;color:inherit;}
+    #cupertino-app-controls[data-active="false"] circle {display:none;}
+    #cupertino-app-controls[data-active="false"] .control-glyph {opacity:1;stroke:currentColor;}
+    #cupertino-app-controls[data-active="false"] button:hover {background:#80808030;}
+    #cupertino-app-controls[data-active="false"] button[data-action="close"]:hover {background:#e81123;color:white;}

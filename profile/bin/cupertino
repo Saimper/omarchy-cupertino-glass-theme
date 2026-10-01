@@ -1,0 +1,501 @@
+#!/usr/bin/env python3
+"""Transactional user-scoped appearance profiles for Omarchy 4."""
+from pathlib import Path
+import argparse, base64, datetime, fcntl, json, os, shutil, subprocess, sys, tempfile, time
+
+SOURCE = Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(SOURCE/"scripts"))
+from terminal_profiles import FILES as TERMINAL_FILES, configure_terminal
+from obsidian_profile import managed_files as obsidian_files, prepared_files as prepare_obsidian_files
+from chatgpt_profile import (FILES as CHATGPT_FILES, DESKTOP as CHATGPT_DESKTOP,
+    available as chatgpt_available, managed_files as chatgpt_files,
+    prepared_files as prepare_chatgpt_files)
+from vscode_profile import (FILES as VSCODE_FILES, available as vscode_available,
+    managed_files as vscode_files, prepared_files as prepare_vscode_files)
+from browser_profile import BROWSERS, sync as sync_browser, busy as browser_busy
+THEMES = ("cupertino-light", "cupertino-dark")
+SWITCH = "cupertino.profiles"
+KEYS = [("org.gnome.desktop.interface", k) for k in
+        ("font-name", "document-font-name", "cursor-theme", "cursor-size")]
+KEYS += [("org.gnome.desktop.wm.preferences", k) for k in ("button-layout", "action-double-click-titlebar")]
+KEYS += [("org.gnome.nautilus.preferences", "default-folder-viewer"),
+         ("org.gnome.nautilus.icon-view", "default-zoom-level")]
+THEME_KEYS = [("org.gnome.desktop.interface", k) for k in ("gtk-theme", "icon-theme", "color-scheme")]
+FILES = [".config/omarchy/shell.json", ".config/hypr/looknfeel.lua",
+         ".config/gtk-3.0/gtk.css", ".config/gtk-4.0/gtk.css", *TERMINAL_FILES.values()]
+
+def run(args, check=True, timeout=30, **kwargs):
+    return subprocess.run(args, check=check, text=True, capture_output=True, timeout=timeout, **kwargs)
+
+def atomic(path, data, mode=0o644):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix="." + path.name + ".", dir=path.parent)
+    try:
+        with os.fdopen(fd,"wb") as f:
+            f.write(data); f.flush(); os.fsync(f.fileno())
+        os.chmod(tmp,mode); os.replace(tmp,path)
+    finally:
+        if os.path.exists(tmp): os.unlink(tmp)
+
+def capture(path):
+    if path.is_symlink(): return {"type":"link","target":str(path.readlink())}
+    if path.exists():
+        if not path.is_file(): raise RuntimeError("Not a regular file: " + str(path))
+        return {"type":"file","data":base64.b64encode(path.read_bytes()).decode(),"mode":path.stat().st_mode & 0o777}
+    return {"type":"absent"}
+
+def restore_file(path, record):
+    if record["type"]=="file": atomic(path,base64.b64decode(record["data"]),record["mode"])
+    else:
+        if path.exists() or path.is_symlink(): path.unlink()
+        if record["type"]=="link":
+            path.parent.mkdir(parents=True,exist_ok=True); path.symlink_to(record["target"])
+
+class Profile:
+    def __init__(self,user_dir=None,source=SOURCE,session=True):
+        self.user_dir=Path(user_dir) if user_dir else Path.home()
+        self.source=Path(source); self.session=session
+        self.state=self.user_dir/".local/state/cupertino-glass"
+        self.install_root=self.user_dir/".local/share/cupertino-glass"
+        self.record_path=self.state/"active.json"
+        self.last_path=self.state/"last-normal.json"
+        self.transition_path=self.state/"transition.json"
+
+    def path(self,name): return self.user_dir/name
+    def files(self,record=None):
+        # Keep already captured vaults restorable if the registry changes while
+        # Cupertino is active; discover only under this profile's HOME.
+        return list(dict.fromkeys(FILES+obsidian_files(self.user_dir)+chatgpt_files(self.user_dir)+vscode_files(self.user_dir)
+            +list((record or {}).get("files",{}))))
+    def save(self,path,value): atomic(path,(json.dumps(value,indent=2)+"\n").encode(),0o600)
+    def active(self): return json.loads(self.record_path.read_text()) if self.record_path.exists() else None
+    def current_theme(self):
+        p=self.path(".local/state/omarchy/current/theme.name")
+        return p.read_text().strip() if p.exists() else ""
+    def settings(self,keys):
+        return {s+"/"+k:run(["gsettings","get",s,k]).stdout.strip() for s,k in keys} if self.session else {}
+    def set_setting(self,s,k,v):
+        if self.session: run(["gsettings","set",s,k,v])
+    def check_session(self):
+        if not self.session: return
+        if run(["omarchy-shell","shell","ping"]).stdout.strip()!="ok": raise RuntimeError("Omarchy shell is not responding.")
+        errors=run(["hyprctl","configerrors"]).stdout.strip()
+        if errors: raise RuntimeError("Existing Hyprland errors:\n"+errors)
+
+    def with_switch(self,conf):
+        layout=conf.setdefault("bar",{}).setdefault("layout",{})
+        if not any(x.get("id")==SWITCH for items in layout.values() for x in items):
+            layout.setdefault("right",[]).append({"id":SWITCH})
+        return conf
+
+    def stash_profile(self,record,after_native_hook=False):
+        if not record or record.get("phase")!="active" or record.get("mode") not in ("light","dark"): return
+        files={n:capture(self.path(n)) for n in record.get("written",{})}
+        saved_path=self.state/"profiles"/(record["mode"]+".json")
+        # If the optional runtime disappeared, active launchers have already
+        # returned to their baseline. Keep any saved per-mode launcher edits.
+        if not record.get("chatgpt_enabled",False):
+            previous=json.loads(saved_path.read_text()) if saved_path.exists() else {}
+            for name in CHATGPT_FILES:
+                files.pop(name,None)
+                if name in previous.get("files",{}): files[name]=previous["files"][name]
+        settings=self.settings(KEYS+THEME_KEYS)
+        background=capture(self.path(".local/state/omarchy/current/background"))
+        if after_native_hook:
+            # Native theme hooks have already retinted GTK and changed the wallpaper.
+            # They are not edits made by the user to the outgoing profile.
+            files[".config/gtk-4.0/gtk.css"]=record["written"][".config/gtk-4.0/gtk.css"]
+            for schema,key in THEME_KEYS:
+                full=schema+"/"+key
+                if full in record.get("applied_settings",{}): settings[full]=record["applied_settings"][full]
+            background=record.get("applied_background",background)
+        self.save(saved_path,{
+            "files":files,"settings":settings,"background":background})
+
+    def status(self):
+        record=self.active()
+        transition=json.loads(self.transition_path.read_text()) if self.transition_path.exists() else {}
+        # A terminated worker must not leave the selector permanently disabled.
+        busy=False
+        if transition.get("busy") and transition.get("pid"):
+            try: os.kill(transition["pid"],0); busy=True
+            except ProcessLookupError: pass
+        return {"theme":self.current_theme(),"profile":{k:record[k] for k in ("phase","theme","mode") if k in record} if record else None,
+            "busy":busy,"target":transition.get("target",""),"error":transition.get("error","")}
+
+    def chime(self):
+        if self.current_theme() not in THEMES: return
+        prefs=self.state/"preferences.json"
+        if prefs.exists() and not json.loads(prefs.read_text()).get("startup_sound",True): return
+        runtime=os.environ.get("XDG_RUNTIME_DIR")
+        if not runtime: return
+        session=os.environ.get("HYPRLAND_INSTANCE_SIGNATURE",os.environ.get("XDG_SESSION_ID","session"))
+        session="".join(c for c in session if c.isalnum() or c in "-_")
+        marker=Path(runtime)/("cupertino-chime-"+session)
+        try:
+            fd=os.open(marker,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600); os.close(fd)
+        except FileExistsError: return
+        try:
+            run(["pw-play","--volume","0.35",str(self.source/"assets/sounds/startup.wav")],timeout=6)
+        except (OSError,subprocess.SubprocessError):
+            marker.unlink(missing_ok=True)
+
+    def remember_normal(self):
+        theme=self.current_theme()
+        if theme and theme not in THEMES:
+            self.save(self.last_path,{"theme":theme,"theme_settings":self.settings(THEME_KEYS),
+                "background":capture(self.path(".local/state/omarchy/current/background")),
+                "gtk4":capture(self.path(".config/gtk-4.0/gtk.css"))})
+
+    def snapshot(self,from_hook=False):
+        if self.active():
+            record=self.active()
+            # Adopt newly managed preferences before touching them during an upgrade.
+            for key,value in self.settings(KEYS).items(): record["settings"].setdefault(key,value)
+            for name in self.files(record):
+                if name not in record["files"]:
+                    record["files"][name]=capture(self.path(name))
+                    if name in TERMINAL_FILES.values():
+                        record.setdefault("file_text",{})[name]=self.path(name).read_text() if self.path(name).exists() else ""
+            self.capture_chatgpt_desktop(record)
+            self.save(self.record_path,record)
+            return record
+        theme=self.current_theme()
+        last=json.loads(self.last_path.read_text()) if self.last_path.exists() else {}
+        if theme in THEMES: theme=last.get("theme","")
+        if not theme or theme in THEMES: raise RuntimeError("Activate a normal Omarchy theme before using this profile.")
+        record={"version":1,"created":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "phase":"preparing","theme":theme,"files":{n:capture(self.path(n)) for n in self.files()},
+            "settings":self.settings(KEYS),"theme_settings":self.settings(THEME_KEYS),
+            "background":capture(self.path(".local/state/omarchy/current/background"))}
+        record["file_text"]={name:self.path(name).read_text() if self.path(name).exists() else "" for name in TERMINAL_FILES.values()}
+        self.capture_chatgpt_desktop(record)
+        if from_hook:
+            record["theme_settings"]=last.get("theme_settings",{})
+            record["background"]=last.get("background",record["background"])
+            if "gtk4" in last: record["files"][".config/gtk-4.0/gtk.css"]=last["gtk4"]
+        look=self.path(".config/hypr/looknfeel.lua")
+        record["look_text"]=look.read_text() if look.exists() else ""
+        shell=self.path(".config/omarchy/shell.json")
+        record["shell_text"]=shell.read_text() if shell.exists() else "{}"
+        self.save(self.record_path,record)
+        self.save(self.state/"snapshots"/record["created"].replace(":","-")/"before.json",record)
+        return record
+
+    def capture_chatgpt_desktop(self,record):
+        # Link identity remains in files; store its original contents separately
+        # so switching variants never uses the outgoing profile's desktop text.
+        original=record["files"].get(CHATGPT_DESKTOP,{})
+        if original.get("type")=="link" and CHATGPT_DESKTOP not in record.get("file_data",{}):
+            path=self.path(CHATGPT_DESKTOP)
+            data=base64.b64encode(path.read_bytes()).decode() if path.exists() else None
+            record.setdefault("file_data",{})[CHATGPT_DESKTOP]=data
+
+    def apply_chatgpt_files(self,record):
+        enabled=chatgpt_available(self.user_dir)
+        names=set(CHATGPT_FILES)&record["files"].keys()
+        # Build each new mode from the captured baseline, then its saved mode
+        # can restore custom fields. Atomic replacement never follows symlinks.
+        for name in names: restore_file(self.path(name),record["files"][name])
+        if enabled and names:
+            original=record["files"].get(CHATGPT_DESKTOP,{})
+            encoded=(original.get("data") if original.get("type")=="file"
+                else record.get("file_data",{}).get(CHATGPT_DESKTOP))
+            data=base64.b64decode(encoded) if encoded is not None else None
+            prepared=prepare_chatgpt_files(self.user_dir,data,original.get("mode",0o644))
+            for name,(data,mode) in prepared.items():
+                if name in names: atomic(self.path(name),data,mode)
+        record["chatgpt_enabled"]=enabled and bool(names)
+        return record["chatgpt_enabled"]
+
+    def install(self):
+        self.check_session()
+        if self.install_root.exists(): raise RuntimeError("Assets already exist at "+str(self.install_root)+". Use the installed copy to apply or restore; retain recovery snapshots.")
+        destinations={self.path(".local/bin/cupertino"):self.install_root/"bin/cupertino"}
+        for slug in THEMES: destinations[self.path(".config/omarchy/themes")/slug]=self.install_root/"themes"/slug
+        for name in ("cupertino.desktop","cupertino.application","cupertino.menubar",SWITCH):
+            destinations[self.path(".config/omarchy/plugins")/name]=self.install_root/"plugins"/name
+        for folder in ("gtk","icons"):
+            for asset in (self.source/"assets"/folder).iterdir():
+                if asset.is_dir() and (folder != "icons" or (asset/"index.theme").exists()):
+                    target=".local/share/themes" if folder=="gtk" else ".local/share/icons"
+                    destinations[self.path(target)/asset.name]=self.install_root/"assets"/folder/asset.name
+        destinations[self.path(".local/share/fonts/Cupertino-Glass")]=self.install_root/"assets/fonts"
+        hook=self.path(".config/omarchy/hooks/theme-set.d/zz-cupertino-glass.sh")
+        for dest in [*destinations,hook]:
+            if dest.exists() or dest.is_symlink(): raise RuntimeError("Existing path will not be overwritten: "+str(dest))
+        if self.active(): raise RuntimeError("Restore the current profile before installing.")
+        original_shell=capture(self.path(".config/omarchy/shell.json"))
+        shutil.copytree(self.source,self.install_root,symlinks=True,ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"))
+        installed=[]
+        try:
+            for dest,target in destinations.items():
+                dest.parent.mkdir(parents=True,exist_ok=True); dest.symlink_to(target); installed.append(dest)
+            hook_text='#!/bin/bash\n# CUPERTINO_GLASS_MANAGED\nif [[ $CUPERTINO_SKIP_HOOK != 1 ]]; then\n  "$HOME/.local/bin/cupertino" hook "$1"\nfi\n'
+            atomic(hook,hook_text.encode(),0o755); installed.append(hook)
+            shell_path=self.path(".config/omarchy/shell.json")
+            conf=json.loads(shell_path.read_text()) if shell_path.exists() else {}
+            atomic(shell_path,(json.dumps(self.with_switch(conf),indent=2)+"\n").encode())
+            if self.session: run(["fc-cache","-f",str(self.path(".local/share/fonts/Cupertino-Glass"))])
+            self.remember_normal()
+            self.save(self.state/"installation.json",{"links":{str(k):str(v) for k,v in destinations.items()},"hook":str(hook),
+                "original_shell":original_shell,"installed_shell":capture(shell_path)})
+            if self.session: run(["omarchy-shell","shell","rescanPlugins"])
+        except Exception:
+            restore_file(self.path(".config/omarchy/shell.json"),original_shell)
+            for p in installed:
+                if p.is_symlink() or p.is_file(): p.unlink()
+            raise
+        print("Installed. Apply with: cupertino apply light")
+
+    def native_theme(self,theme):
+        if not self.session: return
+        env=os.environ.copy(); env["CUPERTINO_SKIP_HOOK"]="1"
+        result=run(["omarchy","theme","set",theme],timeout=90,check=False,env=env)
+        if result.returncode or self.current_theme()!=theme: raise RuntimeError("Theme switch failed:\n"+result.stderr[-2000:])
+
+    def shell_configuration(self,record):
+        raw=record["files"][".config/omarchy/shell.json"]
+        conf=json.loads(record.get("shell_text", "{}")) if "shell_text" in record else json.loads(base64.b64decode(raw["data"]))
+        bar=conf.setdefault("bar",{})
+        entries=[v for section in ("left","center","right") for v in bar.get("layout",{}).get(section,[])]
+        by_id={item.get("id"):item for item in entries}
+        left=[{"id":"cupertino.application"}]
+        excluded={"omarchy.menu","omarchy.workspaces","omarchy.clock"}
+        # Accessory widgets stay alive under the native bar implementation;
+        # collapsing their slots must not disable their IPC or native settings.
+        right=[dict(x,cupertinoAccessory=True) for x in entries if x.get("id") not in excluded|{"omarchy.network","omarchy.power"} and not x.get("id","").startswith("cupertino.")]
+        right.extend([dict(by_id.get("omarchy.power",{"id":"omarchy.power"})),
+                      dict(by_id.get("omarchy.network",{"id":"omarchy.network"}))])
+        right.append({"id":"cupertino.desktop"})
+        right.append({"id":SWITCH})
+        clock=dict(by_id.get("omarchy.clock",{"id":"omarchy.clock"}))
+        clock.update(format="ddd d MMM  HH:mm",formatAlt="dddd d MMMM yyyy")
+        right.append(clock)
+        bar.update(id="cupertino.menubar",position="top",transparent=True,centerAnchor="",layout={"left":left,"center":[],"right":right})
+        plugins=conf.setdefault("plugins",[])
+        if not any((p if isinstance(p,str) else p.get("id"))=="cupertino.desktop" for p in plugins): plugins.append({"id":"cupertino.desktop"})
+        return conf
+
+    @staticmethod
+    def material_css(mode):
+        values=({"window_bg_color":"#24273a","view_bg_color":"#24273a","headerbar_bg_color":"#24273a","sidebar_bg_color":"#24273a","sidebar_fg_color":"#cad3f5","accent_bg_color":"#8aadf4","accent_color":"#8aadf4"}
+            if mode=="dark" else {"window_bg_color":"#ffffff","view_bg_color":"#ffffff","headerbar_bg_color":"#f5f5f7","sidebar_bg_color":"#eeeef0","sidebar_fg_color":"#202124","accent_bg_color":"#0064e1","accent_color":"#007aff"})
+        return "/* Cupertino Glass material v3 */\n"+"".join("@define-color "+key+" "+value+";\n" for key,value in values.items())
+
+    def apply_files(self,mode,record):
+        atomic(self.path(".config/omarchy/shell.json"),(json.dumps(self.shell_configuration(record),indent=2)+"\n").encode())
+        original=record["files"][".config/hypr/looknfeel.lua"]
+        look=self.path(".config/hypr/looknfeel.lua")
+        text=record["look_text"] if "look_text" in record else base64.b64decode(original["data"]).decode()
+        text+='\n-- BEGIN CUPERTINO GLASS\ndofile('+json.dumps(str(self.install_root/"hyprland.lua"))+')\n-- END CUPERTINO GLASS\n'
+        atomic(look,text.encode())
+        variant="Light" if mode=="light" else "Dark"
+        gtk=self.install_root/"assets/gtk"/("Cupertino-Glass-"+variant)
+        for version in ("3.0","4.0"):
+            css='@import url("'+(gtk/("gtk-"+version)/"gtk.css").as_uri()+'");\n'
+            css+="/* Cupertino Glass desktop typography. */\nwindow, dialog { font-family: 'Inter Variable'; }\n"
+            css+=self.material_css(mode)
+            atomic(self.path(".config/gtk-"+version+"/gtk.css"),css.encode())
+        values={"font-name":"'Inter Variable 10'","document-font-name":"'Inter Variable 11'",
+            "cursor-theme":"'Cupertino-Glass'","cursor-size":"24",
+            "gtk-theme":"'Cupertino-Glass-"+variant+"'","icon-theme":"'Cupertino-Glass-"+mode+"'","color-scheme":"'prefer-"+mode+"'"}
+        for k,v in values.items(): self.set_setting("org.gnome.desktop.interface",k,v)
+        self.set_setting("org.gnome.desktop.wm.preferences","button-layout","'close,minimize,maximize:'")
+        self.set_setting("org.gnome.desktop.wm.preferences","action-double-click-titlebar","'toggle-maximize'")
+        self.set_setting("org.gnome.nautilus.preferences","default-folder-viewer","'icon-view'")
+        self.set_setting("org.gnome.nautilus.icon-view","default-zoom-level","'small'")
+        for terminal,name in TERMINAL_FILES.items():
+            raw=record["files"][name]
+            original_text=record.get("file_text",{}).get(name)
+            if original_text is None:
+                original_text=base64.b64decode(raw["data"]).decode() if raw["type"]=="file" else ""
+            atomic(self.path(name),configure_terminal(original_text,terminal,mode).encode())
+        for name,data in prepare_obsidian_files(self.user_dir).items():
+            # A vault registered between snapshot and apply joins next time.
+            if name in record["files"]: atomic(self.path(name),data)
+        chatgpt_enabled=self.apply_chatgpt_files(record)
+        code_enabled=vscode_available(self.user_dir)
+        for name in set(VSCODE_FILES)&record['files'].keys():
+            restore_file(self.path(name),record['files'][name])
+        code_settings=self.path('.config/Code/User/settings.json')
+        code_text=code_settings.read_text() if code_settings.exists() else ''
+        for name,(data,mode_bits) in prepare_vscode_files(self.user_dir,mode,code_text).items():
+            if name in record['files']:atomic(self.path(name),data,mode_bits)
+        saved_path=self.state/"profiles"/(mode+".json")
+        if saved_path.exists():
+            saved=json.loads(saved_path.read_text())
+            for name,item in saved["files"].items():
+                # A saved mode must never write a formerly registered vault
+                # that has no original snapshot in this activation cycle.
+                if name in CHATGPT_FILES and not chatgpt_enabled: continue
+                if name in VSCODE_FILES and not code_enabled: continue
+                if name in record["files"]: restore_file(self.path(name),item)
+            for full,value in saved["settings"].items():
+                schema,key=full.rsplit("/",1); self.set_setting(schema,key,value)
+            restore_file(self.path(".local/state/omarchy/current/background"),saved["background"])
+            if self.session:
+                background=self.path(".local/state/omarchy/current/background")
+                if background.exists(): run(["omarchy-shell","background","setInstant",str(background.resolve())],check=False)
+        record["applied_settings"]=self.settings(KEYS+THEME_KEYS)
+        record["applied_background"]=capture(self.path(".local/state/omarchy/current/background"))
+        record.update(mode=mode,phase="active",written={n:capture(self.path(n)) for n in record["files"]
+            if (n not in CHATGPT_FILES or chatgpt_enabled) and (n not in VSCODE_FILES or code_enabled)})
+        self.save(self.record_path,record)
+        if self.session:
+            signature="".join(c if c.isalnum() or c in "-_" else "_" for c in os.environ.get("HYPRLAND_INSTANCE_SIGNATURE","session"))
+            (self.state/"windows"/signature).mkdir(parents=True,exist_ok=True)
+            cursor=record["applied_settings"].get("org.gnome.desktop.interface/cursor-theme","'Cupertino-Glass'").strip("'")
+            size=record["applied_settings"].get("org.gnome.desktop.interface/cursor-size","24")
+            run(["hyprctl","setcursor",cursor,size])
+            self.reload()
+            deadline=time.monotonic()+8
+            while time.monotonic()<deadline:
+                if run(["omarchy-shell","cupertino.profile","ping"],check=False).stdout.strip()=="ok": break
+                time.sleep(0.2)
+            else: raise RuntimeError("Cupertino dock did not start; restoring the previous desktop.")
+
+    def reload(self):
+        run(["hyprctl","reload"])
+        errors=run(["hyprctl","configerrors"]).stdout.strip()
+        if errors: raise RuntimeError(errors)
+        run(["omarchy-shell","shell","reloadConfig"])
+        theme_dir=self.path(".local/state/omarchy/current/theme")
+        colors=base64.b64encode((theme_dir/"colors.toml").read_bytes()).decode()
+        style=base64.b64encode((theme_dir/"shell.toml").read_bytes()).decode()
+        run(["omarchy-shell","shell","applyTheme",colors,style])
+        if run(["omarchy-shell","shell","ping"]).stdout.strip()!="ok": raise RuntimeError("Shell health check failed.")
+
+    def browser_appearance(self, active):
+        if not self.session: return
+        helper=Path('/usr/local/libexec/cupertino-browser-native-policy')
+        if active and helper.is_file():
+            result=run(['pkexec','--disable-internal-agent',str(helper)],check=False,timeout=60)
+            if result.returncode:
+                print('Browser GTK controls require authorization to release the forced color policy.',file=sys.stderr)
+            else:
+                for folder,command in BROWSERS.values():
+                    if Path(command).exists() and browser_busy(self.user_dir/folder):
+                        run([command,'--refresh-platform-policy','--no-startup-window'],check=False,timeout=15)
+        results=[sync_browser(self.user_dir,b,active) for b in BROWSERS]
+        pending='pending' in results
+        if not active and pending:
+            # Restore appearance leaves after clean browser exit, never rewrite
+            # a running browser's Preferences or terminate it on a theme switch.
+            run(['systemd-run','--user','--collect','--quiet',
+                 '/usr/bin/python',str(self.install_root/'scripts/browser_profile.py'),'settle'],check=False)
+
+    def apply(self,mode,from_hook=False):
+        self.check_session()
+        if self.session and not (self.install_root/"hyprland.lua").is_file(): raise RuntimeError("Install this profile first.")
+        record=self.snapshot(from_hook)
+        self.stash_profile(record,after_native_hook=from_hook)
+        try:
+            if not from_hook: self.native_theme("cupertino-"+mode)
+            self.apply_files(mode,record)
+            self.browser_appearance(True)
+        except Exception:
+            print("Activation failed; restoring the saved profile.",file=sys.stderr)
+            self.restore(save_current=False)
+            raise
+        print("Active: Cupertino Glass "+mode)
+
+    def restore(self,selected_theme=None,save_current=True):
+        record=self.active()
+        if not record: print("The normal profile is already active."); return
+        if save_current: self.stash_profile(record,after_native_hook=bool(selected_theme))
+        record["phase"]="restoring"; self.save(self.record_path,record)
+        for name in (".config/omarchy/shell.json",".config/hypr/looknfeel.lua"):
+            live=capture(self.path(name))
+            if record.get("written",{}).get(name) not in (None,live):
+                stamp=datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+                self.save(self.state/"preserved-edits"/(stamp+"-"+Path(name).name+".json"),live)
+            restore_file(self.path(name),record["files"][name])
+        if not selected_theme: self.native_theme(record["theme"])
+        for name in record["files"]:
+            if name in (".config/omarchy/shell.json",".config/hypr/looknfeel.lua"): continue
+            if selected_theme and name.endswith("gtk-4.0/gtk.css"): continue
+            restore_file(self.path(name),record["files"][name])
+        for full,value in record["settings"].items():
+            schema,key=full.rsplit("/",1); self.set_setting(schema,key,value)
+        if not selected_theme:
+            for full,value in record["theme_settings"].items():
+                schema,key=full.rsplit("/",1); self.set_setting(schema,key,value)
+            restore_file(self.path(".local/state/omarchy/current/background"),record["background"])
+        if self.session:
+            cursor=record["settings"].get("org.gnome.desktop.interface/cursor-theme","'default'").strip("'")
+            size=record["settings"].get("org.gnome.desktop.interface/cursor-size","24")
+            run(["hyprctl","setcursor",cursor,size],check=False)
+            self.reload()
+            window_helper=self.install_root/"bin/cupertino-window"
+            if window_helper.exists(): run([str(window_helper),"revert-profile"])
+            if not selected_theme:
+                background=self.path(".local/state/omarchy/current/background")
+                if background.exists(): run(["omarchy-shell","background","setInstant",str(background.resolve())],check=False)
+        record["phase"]="restored"; self.save(self.state/"last-restored.json",record)
+        self.record_path.unlink(); self.remember_normal()
+        self.browser_appearance(False)
+        print("Restored: "+(selected_theme or record["theme"]))
+
+    def hook(self,slug):
+        if slug in THEMES: self.apply(slug.removeprefix("cupertino-"),from_hook=True)
+        elif self.active(): self.restore(selected_theme=slug)
+        else: self.remember_normal()
+
+    def uninstall(self):
+        if self.active(): self.restore()
+        manifest=self.state/"installation.json"
+        if not manifest.exists(): return
+        data=json.loads(manifest.read_text())
+        shell_path=self.path(".config/omarchy/shell.json")
+        if capture(shell_path)==data.get("installed_shell"):
+            restore_file(shell_path,data["original_shell"])
+        elif shell_path.exists():
+            conf=json.loads(shell_path.read_text())
+            for section,items in conf.get("bar",{}).get("layout",{}).items():
+                conf["bar"]["layout"][section]=[x for x in items if x.get("id")!=SWITCH]
+            atomic(shell_path,(json.dumps(conf,indent=2)+"\n").encode())
+        for dest,target in data["links"].items():
+            p=Path(dest)
+            if p.is_symlink() and str(p.readlink())==target: p.unlink()
+        hook=Path(data["hook"])
+        if hook.exists() and "CUPERTINO_GLASS_MANAGED" in hook.read_text(): hook.unlink()
+        manifest.rename(self.state/"uninstalled.json")
+        if self.session: run(["omarchy-shell","shell","rescanPlugins"])
+        print("Unlinked. Assets and recovery snapshots remain available.")
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action",choices=["install","apply","restore","status","hook","uninstall","chime","sound"])
+    parser.add_argument("value",nargs="?")
+    args=parser.parse_args(); p=Profile()
+    if args.action=="status":
+        print(json.dumps(p.status(),indent=2)); return
+    if args.action=="chime":
+        p.chime(); return
+    if args.action=="sound":
+        if args.value not in ("on","off"): parser.error("sound requires on or off")
+        p.save(p.state/"preferences.json",{"startup_sound":args.value=="on"}); return
+    p.state.mkdir(parents=True,exist_ok=True)
+    with open(p.state/"profile.lock","w") as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        transition={"busy":True,"pid":os.getpid(),"target":args.value or args.action,"error":""}
+        p.save(p.transition_path,transition)
+        try:
+            if args.action=="apply":
+                if args.value not in ("light","dark"): parser.error("apply requires light or dark")
+                p.apply(args.value)
+            elif args.action=="hook":
+                if not args.value: parser.error("hook requires a theme slug")
+                p.hook(args.value)
+            else: getattr(p,args.action)()
+        except Exception as exc:
+            transition["error"]=str(exc); raise
+        finally:
+            transition["busy"]=False
+            p.save(p.transition_path,transition)
+
+if __name__=="__main__":
+    try: main()
+    except (RuntimeError,subprocess.SubprocessError,OSError,ValueError) as exc:
+        print("Cupertino Glass: "+str(exc),file=sys.stderr); sys.exit(1)

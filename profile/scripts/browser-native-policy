@@ -1,0 +1,41 @@
+#!/usr/bin/python -I
+"""Remove only Omarchy's forced browser color during the Cupertino profile.
+
+Install root-owned under /usr/local/libexec before invoking through pkexec.
+No caller-supplied paths, colors, commands or arguments are accepted.
+"""
+import json, os, pathlib, pwd, stat, tempfile
+
+if os.geteuid() != 0 or len(os.sys.argv) != 1:
+    raise SystemExit(2)
+uid = int(os.environ.get('PKEXEC_UID', '-1'))
+if uid < 1000:
+    raise SystemExit(2)
+home = pathlib.Path(pwd.getpwuid(uid).pw_dir)
+theme = (home/'.local/state/omarchy/current/theme.name').read_text().strip()
+if theme not in ('cupertino-light', 'cupertino-dark'):
+    raise SystemExit(0)
+for folder in ('/etc/chromium/policies/managed', '/etc/opt/chrome/policies/managed',
+               '/etc/opt/edge/policies/managed', '/etc/brave/policies/managed'):
+    directory = pathlib.Path(folder)
+    if not directory.is_dir() or any(p.is_symlink() for p in (directory, *directory.parents)):
+        continue
+    path = directory/'color.json'
+    if not path.exists():
+        continue
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+        raise RuntimeError('Unsafe browser policy: ' + str(path))
+    data = json.loads(path.read_text())
+    if 'BrowserThemeColor' not in data:
+        continue
+    # Retain every other policy; never change the browser sandbox or security.
+    del data['BrowserThemeColor']
+    fd, name = tempfile.mkstemp(prefix='.cupertino-color-', dir=directory)
+    try:
+        with os.fdopen(fd, 'w') as stream:
+            json.dump(data, stream); stream.write('\n'); stream.flush(); os.fsync(stream.fileno())
+        os.chmod(name, 0o644)
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name): os.unlink(name)

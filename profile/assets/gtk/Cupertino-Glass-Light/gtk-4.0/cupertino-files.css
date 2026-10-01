@@ -1,0 +1,153 @@
+/* GNOME Files 50: compact Finder-like proportions, native widgets/actions.
+   Scoped to Nautilus: other GTK applications retain their own layout.
+   No floating sidebar frame, duplicate title bar, or disabled native controls. */
+window.nautilus-window .sidebar-pane.sidebar-pane,
+window.nautilus-window .sidebar-pane.sidebar-pane:backdrop,
+window.nautilus-window .content-pane.content-pane,
+window.nautilus-window .content-pane.content-pane:backdrop {
+  background: @window_bg_color;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+}
+window.nautilus-window headerbar,
+window.nautilus-window .sidebar-pane headerbar,
+window.nautilus-window headerbar:backdrop {
+  background: @window_bg_color;
+  min-height: 34px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  box-shadow: none;
+}
+window.nautilus-window headerbar > windowhandle > box,
+window.nautilus-window .sidebar-pane headerbar > windowhandle > box {
+  min-height: 34px;
+  padding: 0 4px;
+  margin: 0;
+  border-spacing: 4px;
+}
+window.nautilus-window headerbar button:not(.close):not(.minimize):not(.maximize) {
+  min-height: 26px;
+  min-width: 26px;
+  padding: 0 4px;
+  margin-top: 0;
+  margin-bottom: 0;
+  border-radius: 13px;
+  border: none;
+  box-shadow: none;
+  background-image: none;
+}
+window.nautilus-window headerbar button:not(.close):not(.minimize):not(.maximize):hover {
+  background-color: alpha(@window_fg_color, .10);
+}
+window.nautilus-window headerbar .linked,
+window.nautilus-window headerbar splitbutton {
+  min-height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 13px;
+  background: alpha(@window_fg_color, .07);
+  box-shadow: inset 0 0 0 0.5px alpha(@window_fg_color, .10);
+}
+window.nautilus-window headerbar .linked > button {
+  background-color: transparent;
+}
+window.nautilus-window headerbar image {
+  -gtk-icon-size: 16px;
+}
+window.nautilus-window headerbar windowcontrols { padding: 0 2px; }
+window.nautilus-window headerbar windowcontrols button {
+  min-width: 20px;
+  min-height: 24px;
+}
+window.nautilus-window .nautilus-pathbar,
+window.nautilus-window #NautilusPathBar {
+  min-height: 26px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 13px;
+  background: alpha(@window_fg_color, .055);
+  box-shadow: none;
+}
+window.nautilus-window .nautilus-path-button,
+window.nautilus-window #NautilusPathButton {
+  min-height: 24px;
+  min-width: 8px;
+  margin: 0;
+  padding: 0 6px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+window.nautilus-window .nautilus-path-button.current-dir { font-weight: 600; }
+window.nautilus-window .navigation-sidebar {
+  padding: 6px 8px;
+  background: @window_bg_color;
+  background-image: none;
+  box-shadow: none;
+  border: none;
+}
+window.nautilus-window .sidebar-pane .navigation-sidebar > row {
+  min-height: 26px;
+  padding: 0 7px;
+  margin: 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+window.nautilus-window .navigation-sidebar > row > revealer { padding: 0; }
+window.nautilus-window .navigation-sidebar > row image {
+  -gtk-icon-size: 16px;
+  color: #329cff;
+}
+window.nautilus-window .navigation-sidebar > row button image {
+  color: alpha(@window_fg_color, .65);
+}
+window.nautilus-window .sidebar-pane .navigation-sidebar > row:selected,
+window.nautilus-window .sidebar-pane placessidebar .navigation-sidebar:not(.view) > row:selected {
+  color: @window_fg_color;
+  background: alpha(@window_fg_color, .12);
+  box-shadow: none;
+}
+window.nautilus-window .nautilus-grid-view gridview {
+  padding: 14px;
+  border-spacing: 8px;
+}
+window.nautilus-window .nautilus-grid-view .nautilus-view-cell {
+  padding: 6px;
+  font-size: 12px;
+  border-radius: 7px;
+}
+window.nautilus-window .nautilus-list-view columnview { padding: 0 12px; }
+window.nautilus-window .nautilus-list-view columnview > listview {
+  padding-top: 4px;
+  border-spacing: 0;
+}
+window.nautilus-window .nautilus-list-view .nautilus-view-cell {
+  min-height: 22px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+window.nautilus-window tabbar tab {
+  min-height: 26px;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-radius: 7px;
+  box-shadow: none;
+  font-size: 12px;
+}
+/* The inherited -3px margins produce a negative minimum width for an empty
+   AdwTabBox. Keep the native tab strip's allocation non-negative. */
+window.nautilus-window tabbar tabbox {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
